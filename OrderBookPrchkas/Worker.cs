@@ -44,7 +44,6 @@ public class Worker : BackgroundService
             {
                 await Task.Delay(_config.Delay, stoppingToken);
             }
-
         }
     }
 
@@ -63,7 +62,9 @@ public class Worker : BackgroundService
             Logger.Info($"Placed order {order.OrderId}, tradeId: {order.TradeId}.");
 
             await Task.Delay(_config.PlaceAndCancelDelay);
-            await _service.Api.CancelOrderAsync(order.OrderId, item.Symbol);
+            await _service.CancelOrderAsync(order.OrderId, item.Symbol);
+
+            Logger.Info($"Order {order.OrderId} canceled.");
         }
     }
 }

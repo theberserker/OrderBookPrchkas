@@ -1,15 +1,27 @@
 ﻿using ExchangeSharp;
 using OrderBookPrchkas.Configuration;
+using Polly;
+using Polly.Retry;
 
 namespace OrderBookPrchkas;
 
 public class BitstampService : IDisposable
 {
-    public readonly IExchangeAPI Api;
+    private readonly IExchangeAPI _api;
+    
+    private readonly AsyncRetryPolicy _cancelationRetryPolicy = Policy
+        .Handle<APIException>()
+        .WaitAndRetryAsync(
+            3, 
+            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), 
+            (exception, span) => 
+            { 
+                Logger.Warn($"Retry attempt after {span} due to the error. {exception}");
+            });
 
     private BitstampService(IExchangeAPI api)
     {
-        Api = api;
+        _api = api;
     }
 
     public static async Task<BitstampService> Create(BitstampConfig config)
@@ -25,7 +37,7 @@ public class BitstampService : IDisposable
 
     public Task<ExchangeTicker> GetTicker(string symbol)
     {
-        return Api.GetTickerAsync(symbol);
+        return _api.GetTickerAsync(symbol);
     }
 
     public Task<ExchangeOrderResult> PlaceBuyLimitOrder(Coinfig coinfig, decimal bidPrice)
@@ -40,12 +52,17 @@ public class BitstampService : IDisposable
             ShouldRoundAmount = false
         };
         
-        return Api.PlaceOrderAsync(orderDto);
+        return _api.PlaceOrderAsync(orderDto);
     }
 
+    public async Task CancelOrderAsync(string orderId, string symbol)
+    {
+        await _cancelationRetryPolicy.ExecuteAsync(async () => await _api.CancelOrderAsync(orderId, symbol));
+
+    }
 
     public void Dispose()
     {
-        Api.Dispose();
+        _api.Dispose();
     }
 }
