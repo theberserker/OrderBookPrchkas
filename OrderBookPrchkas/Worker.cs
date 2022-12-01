@@ -34,7 +34,7 @@ public class Worker : BackgroundService
         {
             try
             {
-                await DoWork();
+                await DoWork(stoppingToken);
             }
             catch (Exception ex)
             {
@@ -47,10 +47,15 @@ public class Worker : BackgroundService
         }
     }
 
-    private async Task DoWork()
+    private async Task DoWork(CancellationToken cancellationToken)
     {
         foreach (var item in Items)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+
             var ticker = await _service.GetTicker(item.Symbol);
 
             var lowerBidPrice = ticker.Bid * _config.BidFactor;
