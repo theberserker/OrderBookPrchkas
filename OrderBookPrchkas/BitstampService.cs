@@ -23,6 +23,26 @@ public class BitstampService : IDisposable
         return new BitstampService(api);
     }
 
+    public Task<ExchangeTicker> GetTicker(string symbol)
+    {
+        return Api.GetTickerAsync(symbol);
+    }
+
+    public Task<ExchangeOrderResult> PlaceBuyLimitOrder(Coinfig coinfig, decimal bidPrice)
+    {
+        var orderDto = new ExchangeOrderRequest
+        {
+            MarketSymbol = coinfig.Symbol,
+            IsBuy = true,
+            OrderType = OrderType.Limit,
+            Amount = Math.Round(11 / bidPrice, coinfig.AmountPrecision),
+            Price = Math.Round(bidPrice, coinfig.PricePrecision),
+            ShouldRoundAmount = false
+        };
+        
+        return Api.PlaceOrderAsync(orderDto);
+    }
+
 
     public void Dispose()
     {

@@ -10,9 +10,13 @@ public class Worker : BackgroundService
     /// <summary>
     /// (Market symbol, decimal precision) pairs
     /// </summary>
-    private static readonly Coinfig[] Items = 
+    public static readonly Coinfig[] Items = 
     {
-        new("aave_eur", 8, 2)
+        new("aave_eur", 8, 2),
+        new("bch_eur", 8, 2),
+        new("link_eur", 8, 2),
+        new("uni_eur", 8, 5),
+        new("sand_eur", 8, 5)
     };
 
     private readonly WorkerConfig _config;
@@ -48,26 +52,17 @@ public class Worker : BackgroundService
     {
         foreach (var item in Items)
         {
-            var ticker = await _service.Api.GetTickerAsync(item.Symbol);
+            var ticker = await _service.GetTicker(item.Symbol);
 
-            var lowerBidPrice = ticker.Bid * 0.98m;
+            var lowerBidPrice = ticker.Bid * _config.BidFactor;
 
-            Logger.Info("We will bid " + lowerBidPrice);
+            Logger.Info($"Ticker: {ticker}. We will bid {lowerBidPrice}");
 
-            var orderDto = new ExchangeOrderRequest()
-            {
-                MarketSymbol = item.Symbol,
-                IsBuy = true,
-                OrderType = OrderType.Limit,
-                Amount = Math.Round(11 / lowerBidPrice, item.AmountPrecision),
-                Price = Math.Round(lowerBidPrice, item.PricePrecision),
-                ShouldRoundAmount = false
-            };
+            var order = await _service.PlaceBuyLimitOrder(item, lowerBidPrice);
 
-            var order = await _service.Api.PlaceOrderAsync(orderDto);
+            Logger.Info($"Placed order {order.OrderId}, tradeId: {order.TradeId}.");
 
-            Logger.Info("Placed order {OrderId} trade: {TradeId}", order.OrderId, order.TradeId);
-
+            await Task.Delay(_config.PlaceAndCancelDelay);
             await _service.Api.CancelOrderAsync(order.OrderId, item.Symbol);
         }
     }

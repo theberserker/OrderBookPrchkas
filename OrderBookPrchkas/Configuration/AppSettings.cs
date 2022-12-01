@@ -11,6 +11,9 @@ public class BitstampConfig
 
 public class WorkerConfig
 {
-    public TimeSpan Delay { get; set; } 
+    public TimeSpan Delay { get; set; }
+    public TimeSpan PlaceAndCancelDelay { get; set; } = TimeSpan.FromSeconds(1);
+
+    public decimal BidFactor { get; set; } = 0.98m;
 }
 
