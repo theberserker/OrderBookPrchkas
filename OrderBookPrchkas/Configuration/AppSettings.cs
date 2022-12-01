@@ -15,5 +15,6 @@ public class WorkerConfig
     public TimeSpan PlaceAndCancelDelay { get; set; } = TimeSpan.FromSeconds(1);
 
     public decimal BidFactor { get; set; } = 0.98m;
+    public decimal BuyEurAmount { get; set; } = 10.55m;
 }
 

@@ -62,7 +62,7 @@ public class Worker : BackgroundService
 
             Logger.Info($"Ticker: {ticker}. We will bid {lowerBidPrice}");
 
-            var order = await _service.PlaceBuyLimitOrder(item, lowerBidPrice);
+            var order = await _service.PlaceBuyLimitOrder(item, lowerBidPrice, _config.BuyEurAmount);
 
             Logger.Info($"Placed order {order.OrderId}, tradeId: {order.TradeId}.");
 

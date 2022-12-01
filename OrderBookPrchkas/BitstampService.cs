@@ -40,14 +40,14 @@ public class BitstampService : IDisposable
         return _api.GetTickerAsync(symbol);
     }
 
-    public Task<ExchangeOrderResult> PlaceBuyLimitOrder(Coinfig coinfig, decimal bidPrice)
+    public Task<ExchangeOrderResult> PlaceBuyLimitOrder(Coinfig coinfig, decimal bidPrice, decimal eurAmount)
     {
         var orderDto = new ExchangeOrderRequest
         {
             MarketSymbol = coinfig.Symbol,
             IsBuy = true,
             OrderType = OrderType.Limit,
-            Amount = Math.Round(11 / bidPrice, coinfig.AmountPrecision),
+            Amount = Math.Round(eurAmount / bidPrice, coinfig.AmountPrecision),
             Price = Math.Round(bidPrice, coinfig.PricePrecision),
             ShouldRoundAmount = false
         };
