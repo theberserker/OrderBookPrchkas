@@ -5,6 +5,42 @@ using Logger = ExchangeSharp.Logger;
 
 namespace OrderBookPrchkas;
 
+public class WorkerAave : Worker
+{
+    public WorkerAave(IOptions<WorkerConfig> config, BitstampService service) 
+        : base(config, service, new("aave_eur", 8, 2))
+    {
+    }
+}
+public class WorkerBch : Worker
+{
+    public WorkerBch(IOptions<WorkerConfig> config, BitstampService service) 
+        : base(config, service, new("bch_eur", 8, 2))
+    {
+    }
+}
+public class WorkerLink : Worker
+{
+    public WorkerLink(IOptions<WorkerConfig> config, BitstampService service)
+        : base(config, service, new("link_eur", 8, 2))
+    {
+    }
+}
+public class WorkerUni : Worker
+{
+    public WorkerUni(IOptions<WorkerConfig> config, BitstampService service) 
+        : base(config, service, new("uni_eur", 8, 5))
+    {
+    }
+}
+public class WorkerSand : Worker
+{
+    public WorkerSand(IOptions<WorkerConfig> config, BitstampService service) 
+        : base(config, service, new("sand_eur", 8, 5))
+    {
+    }
+}
+
 public class Worker : BackgroundService
 {
     /// <summary>
@@ -21,11 +57,13 @@ public class Worker : BackgroundService
 
     private readonly WorkerConfig _config;
     private readonly BitstampService _service;
+    private readonly Coinfig _item;
 
-    public Worker(IOptions<WorkerConfig> config, BitstampService service)
+    public Worker(IOptions<WorkerConfig> config, BitstampService service, Coinfig item)
     {
         _config = config.Value;
         _service = service;
+        _item = item;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -49,27 +87,19 @@ public class Worker : BackgroundService
 
     private async Task DoWork(CancellationToken cancellationToken)
     {
-        foreach (var item in Items)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
+        var ticker = await _service.GetTicker(_item.Symbol);
 
-            var ticker = await _service.GetTicker(item.Symbol);
+        var lowerBidPrice = ticker.Bid * _config.BidFactor;
 
-            var lowerBidPrice = ticker.Bid * _config.BidFactor;
+        Logger.Info($"({_item.Symbol}) Ticker: {ticker}. We will bid {lowerBidPrice}");
 
-            Logger.Info($"Ticker: {ticker}. We will bid {lowerBidPrice}");
+        var order = await _service.PlaceBuyLimitOrder(_item, lowerBidPrice, _config.BuyEurAmount);
 
-            var order = await _service.PlaceBuyLimitOrder(item, lowerBidPrice, _config.BuyEurAmount);
+        Logger.Info($"({_item.Symbol}) Placed order {order.OrderId}");
 
-            Logger.Info($"Placed order {order.OrderId}, tradeId: {order.TradeId}.");
+        await Task.Delay(_config.PlaceAndCancelDelay);
+        await _service.CancelOrderAsync(order.OrderId, _item.Symbol);
 
-            await Task.Delay(_config.PlaceAndCancelDelay);
-            await _service.CancelOrderAsync(order.OrderId, item.Symbol);
-
-            Logger.Info($"Order {order.OrderId} canceled.");
-        }
+        Logger.Info($"({_item.Symbol}) Order {order.OrderId} canceled.");   
     }
 }
