@@ -10,9 +10,9 @@ var hostBuilder = Host.CreateDefaultBuilder(args)
 
         services.AddHostedService<WorkerAave>();
         services.AddHostedService<WorkerBch>();
-        services.AddHostedService<WorkerLink>();
-        services.AddHostedService<WorkerUni>();
-        services.AddHostedService<WorkerSand>();
+        //services.AddHostedService<WorkerLink>();
+        //services.AddHostedService<WorkerUni>();
+        //services.AddHostedService<WorkerSand>();
 
         services.Configure<BitstampConfig>(ctx.Configuration.GetSection("Bitstamp"));
         services.Configure<WorkerConfig>(ctx.Configuration.GetSection("WorkerConfig"));
