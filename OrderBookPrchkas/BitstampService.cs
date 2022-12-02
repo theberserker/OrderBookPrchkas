@@ -8,14 +8,14 @@ namespace OrderBookPrchkas;
 public class BitstampService : IDisposable
 {
     private readonly IExchangeAPI _api;
-    
+
     private readonly AsyncRetryPolicy _cancelationRetryPolicy = Policy
-        .Handle<APIException>()
+        .Handle<Exception>()
         .WaitAndRetryAsync(
-            3, 
-            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), 
-            (exception, span) => 
-            { 
+            4,
+            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            (exception, span) =>
+            {
                 Logger.Warn($"Retry attempt after {span} due to the error. {exception}");
             });
 
@@ -51,14 +51,27 @@ public class BitstampService : IDisposable
             Price = Math.Round(bidPrice, coinfig.PricePrecision),
             ShouldRoundAmount = false
         };
-        
+
         return _api.PlaceOrderAsync(orderDto);
     }
 
     public async Task CancelOrderAsync(string orderId, string symbol)
     {
-        await _cancelationRetryPolicy.ExecuteAsync(async () => await _api.CancelOrderAsync(orderId, symbol));
+        await _cancelationRetryPolicy.ExecuteAsync(async () =>
+        {
+            try
+            {
+                await _api.CancelOrderAsync(orderId, symbol);
+            }
+            catch (APIException ex) when (IsOkToProceed(ex))
+            {
+                Logger.Info($"Non-existent order tried to be cancelled. Details: {ex.Message}");
+            }
+        });
 
+        bool IsOkToProceed(APIException ex)
+            => ex.Message.ToLowerInvariant().Contains("order not found") ||
+               ex.Message.ToLowerInvariant().Contains("Invalid order id");
     }
 
     public void Dispose()

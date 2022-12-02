@@ -58,16 +58,22 @@ public class Worker : BackgroundService
     private readonly WorkerConfig _config;
     private readonly BitstampService _service;
     private readonly Coinfig _item;
+    private readonly Random _random;
+    private readonly Stack<string> _activeOrders;
 
     public Worker(IOptions<WorkerConfig> config, BitstampService service, Coinfig item)
     {
         _config = config.Value;
         _service = service;
         _item = item;
+        _random = new Random(this.GetHashCode());
+        _activeOrders = new Stack<string>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Delay(TimeSpan.FromMilliseconds(_random.Next(1, 100))); // poor-mans jitter
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -76,7 +82,7 @@ public class Worker : BackgroundService
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "Exception occurred.");
+                Logger.Error(ex, $"({_item.Symbol}) Exception occurred.");
             }
             finally
             {
@@ -97,9 +103,21 @@ public class Worker : BackgroundService
 
         Logger.Info($"({_item.Symbol}) Placed order {order.OrderId}");
 
-        await Task.Delay(_config.PlaceAndCancelDelay);
-        await _service.CancelOrderAsync(order.OrderId, _item.Symbol);
+        _activeOrders.Push(order.OrderId);
 
-        Logger.Info($"({_item.Symbol}) Order {order.OrderId} canceled.");   
+        if (!cancellationToken.IsCancellationRequested)
+        {
+            await Task.Delay(_config.PlaceAndCancelDelay);
+        }
+
+        while(_activeOrders.Count > 0)
+        {
+            var orderId = _activeOrders.Peek();
+            await _service.CancelOrderAsync(orderId, _item.Symbol);
+
+            _activeOrders.Pop();
+
+            Logger.Info($"({_item.Symbol}) Order {orderId} canceled.");
+        }
     }
 }
