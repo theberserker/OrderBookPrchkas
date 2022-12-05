@@ -1,5 +1,6 @@
 using ExchangeSharp;
 using Microsoft.Extensions.Options;
+using OrderBookPrchkas.ApiClient;
 using OrderBookPrchkas.Configuration;
 using Logger = ExchangeSharp.Logger;
 
@@ -7,36 +8,36 @@ namespace OrderBookPrchkas;
 
 public class WorkerAave : Worker
 {
-    public WorkerAave(IOptions<WorkerConfig> config, BitstampService service) 
-        : base(config, service, new("aave_eur", 8, 2))
+    public WorkerAave(IOptions<WorkerConfig> config, BitstampService service, BitstampApiClient api, BitstampRestClient unauthApi) 
+        : base(config, service, new("aave_eur", 8, 2), api, unauthApi)
     {
     }
 }
-public class WorkerBch : Worker
-{
-    public WorkerBch(IOptions<WorkerConfig> config, BitstampService service) 
-        : base(config, service, new("bch_eur", 8, 2))
-    {
-    }
-}
-public class WorkerLink : Worker
-{
-    public WorkerLink(IOptions<WorkerConfig> config, BitstampService service)
-        : base(config, service, new("link_eur", 8, 2))
-    {
-    }
-}
-public class WorkerUni : Worker
-{
-    public WorkerUni(IOptions<WorkerConfig> config, BitstampService service) 
-        : base(config, service, new("uni_eur", 8, 5))
-    {
-    }
-}
+//public class WorkerBch : Worker
+//{
+//    public WorkerBch(IOptions<WorkerConfig> config, BitstampService service) 
+//        : base(config, service, new("bch_eur", 8, 2))
+//    {
+//    }
+//}
+//public class WorkerLink : Worker
+//{
+//    public WorkerLink(IOptions<WorkerConfig> config, BitstampService service)
+//        : base(config, service, new("link_eur", 8, 2))
+//    {
+//    }
+//}
+//public class WorkerUni : Worker
+//{
+//    public WorkerUni(IOptions<WorkerConfig> config, BitstampService service) 
+//        : base(config, service, new("uni_eur", 8, 5))
+//    {
+//    }
+//}
 public class WorkerSand : Worker
 {
-    public WorkerSand(IOptions<WorkerConfig> config, BitstampService service) 
-        : base(config, service, new("sand_eur", 8, 5))
+    public WorkerSand(IOptions<WorkerConfig> config, BitstampService service, BitstampApiClient api, BitstampRestClient unauthApi)
+        : base(config, service, new("sand_eur", 8, 5), api, unauthApi)
     {
     }
 }
@@ -58,14 +59,18 @@ public class Worker : BackgroundService
     private readonly WorkerConfig _config;
     private readonly BitstampService _service;
     private readonly Coinfig _item;
+    private readonly BitstampApiClient _api;
+    private readonly BitstampRestClient _unauthApi;
     private readonly Random _random;
     private readonly Stack<string> _activeOrders;
 
-    public Worker(IOptions<WorkerConfig> config, BitstampService service, Coinfig item)
+    public Worker(IOptions<WorkerConfig> config, BitstampService service, Coinfig item, BitstampApiClient api, BitstampRestClient unauthApi)
     {
         _config = config.Value;
         _service = service;
         _item = item;
+        _api = api;
+        _unauthApi = unauthApi;
         _random = new Random(this.GetHashCode());
         _activeOrders = new Stack<string>();
     }
@@ -78,7 +83,12 @@ public class Worker : BackgroundService
         {
             try
             {
-                await DoWork(stoppingToken);
+                //var r = await _api.GetBalance();
+
+                var r2 = await _unauthApi.GetOrderBook(_item.Symbol, stoppingToken);
+
+
+                //await DoWork(stoppingToken);
             }
             catch (Exception ex)
             {
