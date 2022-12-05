@@ -13,7 +13,8 @@ var hostBuilder = Host.CreateDefaultBuilder(args)
         //services.AddHostedService<WorkerBch>();
         //services.AddHostedService<WorkerLink>();
         //services.AddHostedService<WorkerUni>();
-        services.AddHostedService<WorkerSand>();
+        //services.AddHostedService<WorkerSand>();
+        services.AddHostedService<SatansWorker>();
 
         services
             .AddTransient<BitstampApiClientAuthHandler>()

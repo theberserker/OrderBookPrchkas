@@ -1,9 +1,11 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.Globalization;
+using Microsoft.Extensions.Options;
 using OrderBookPrchkas.Configuration;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Rest;
+using Newtonsoft.Json;
 
 namespace OrderBookPrchkas.ApiClient
 {
@@ -39,6 +41,17 @@ namespace OrderBookPrchkas.ApiClient
             return responseString;
         }
 
+        public async Task CancelAllOrders()
+        {
+            var response = await _httpClient.PostAsync(
+                "cancel_all_orders/", 
+                new FormUrlEncodedContent(Array.Empty<KeyValuePair<string, string>>()));
+
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            Check(response, responseString);
+        }
+
         private void Check(HttpResponseMessage response, string responseString)
         {
             if (!response.IsSuccessStatusCode || responseString.Contains("\"error\""))
@@ -46,6 +59,65 @@ namespace OrderBookPrchkas.ApiClient
                 throw new BitstampApiException(response.StatusCode, responseString);
             }
         }
+
+        public async Task<ExchangeTicker> GetTicker(string symbol)
+        {
+            string resource = $"ticker/{symbol.Replace("_", string.Empty)}/";
+
+            var response = await _httpClient.PostAsync(
+                resource, 
+                new FormUrlEncodedContent(Array.Empty<KeyValuePair<string, string>>()));
+
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            Check(response, responseString);
+
+            var a = JsonConvert.DeserializeObject<ExchangeTicker>(responseString);
+            return a;
+        }
+
+        public async Task<ExchangeOrderResult> PlaceBuyLimitOrder(Coinfig coinfig, decimal bidPrice, decimal eurAmount)
+        {
+            var amount = Math.Round(eurAmount / bidPrice, coinfig.AmountPrecision);
+            var price = Math.Round(bidPrice, coinfig.PricePrecision);
+            
+            string resource = $"buy/{coinfig.Symbol.Replace("_", string.Empty)}/?amount={amount}&price={price}";
+            var dictionary = new Dictionary<string, string>()
+            {
+                { "amount", amount.ToString(CultureInfo.InvariantCulture) },
+                { "price", price.ToString(CultureInfo.InvariantCulture) }
+            };
+
+            var queryParams = new Dictionary<string, object>();
+            var response = await _httpClient.PostAsync(
+                resource, 
+                new FormUrlEncodedContent(dictionary));
+
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            Check(response, responseString);
+
+            var a = JsonConvert.DeserializeObject<ExchangeOrderResult>(responseString);
+            return a;
+        }
+
+
+        string BuildQs(string uri, Dictionary<string, object> query)
+        {
+            var builder = new UriBuilder(uri);
+            if (query != null && query.Any())
+            {
+                builder.Query = string.Join("&", query.Select(kv => $"{kv.Key}={Uri.EscapeDataString(GetQueryValueString(kv.Value))}"));
+            }
+            return builder.Uri.AbsoluteUri;
+        }
+
+        string GetQueryValueString(object value)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}", value);
+        }
+
+
     }
 
     public class BitstampApiClientAuthHandler : DelegatingHandler
