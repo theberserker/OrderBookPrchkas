@@ -61,11 +61,13 @@ public class Worker : BackgroundService
     {
         new("aave_eur", 8, 2),
         new("bch_eur", 8, 2),
+        new("ltc_eur", 8, 2),
         new("link_eur", 8, 2),
         new("uni_eur", 8, 5),
         new("sand_eur", 8, 5),
         new("ada_eur", 5, 5),
         new("xrp_eur", 5, 5),
+        new("eth_eur", 8, 1),
     };
 
     private readonly WorkerConfig _config;
