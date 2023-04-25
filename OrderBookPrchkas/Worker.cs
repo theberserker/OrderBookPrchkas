@@ -34,15 +34,11 @@ public class Worker : BackgroundService
     };
 
     private readonly WorkerConfig _config;
-    //private readonly BitstampService _service;
-    //private readonly Coinfig _item;
     private readonly BitstampApiClient _api;
 
     public Worker(IOptions<WorkerConfig> config, BitstampApiClient api, BitstampRestClient unauthApi)
     {
         _config = config.Value;
-        //_service = service;
-        //_item = item;
         _api = api;
     }
 
@@ -75,7 +71,6 @@ public class Worker : BackgroundService
             {
                 Key = x.Symbol,
                 Symbol = x,
-                //TickerTask = _service.GetTicker(x.Symbol),
                 TickerTask = _api.GetTicker(x.Symbol)
             })
             .ToDictionary(x => x.Key);
@@ -103,7 +98,6 @@ public class Worker : BackgroundService
                 var lowerBidPrice = ticker.Bid * _config.BidFactor;
                 Logger.Info($"({x.Key}) Ticker bid: {ticker.Bid}. We will bid {lowerBidPrice}");
 
-                //return new { X = x, Task = _service.PlaceBuyLimitOrder(x.Value.Symbol, lowerBidPrice, _config.BuyEurAmount) };
                 return new { X = x, Task = _api.PlaceBuyLimitOrder(x.Value.Symbol, lowerBidPrice, _config.BuyEurAmount) };
             })
             .ToList();

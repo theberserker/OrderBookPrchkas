@@ -5,7 +5,7 @@ using OrderBookPrchkas.Configuration;
 var hostBuilder = Host.CreateDefaultBuilder(args)
     .ConfigureServices((ctx, services) =>
     {
-        services.AddLogging();
+        //services.AddLogging(); // once logging might be injected
         services.AddHostedService<SatansWorker>();
 
         services
