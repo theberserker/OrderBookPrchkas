@@ -1,52 +1,13 @@
-using System.Reflection.Metadata.Ecma335;
-using ExchangeSharp;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
+using NLog;
 using OrderBookPrchkas.ApiClient;
 using OrderBookPrchkas.Configuration;
-using Logger = ExchangeSharp.Logger;
 
 namespace OrderBookPrchkas;
 
-//public class WorkerAave : Worker
-//{
-//    public WorkerAave(IOptions<WorkerConfig> config, BitstampService service, BitstampApiClient api, BitstampRestClient unauthApi)
-//        : base(config, service, new("aave_eur", 8, 2), api, unauthApi)
-//    {
-//    }
-//}
-//public class WorkerBch : Worker
-//{
-//    public WorkerBch(IOptions<WorkerConfig> config, BitstampService service) 
-//        : base(config, service, new("bch_eur", 8, 2))
-//    {
-//    }
-//}
-//public class WorkerLink : Worker
-//{
-//    public WorkerLink(IOptions<WorkerConfig> config, BitstampService service)
-//        : base(config, service, new("link_eur", 8, 2))
-//    {
-//    }
-//}
-//public class WorkerUni : Worker
-//{
-//    public WorkerUni(IOptions<WorkerConfig> config, BitstampService service) 
-//        : base(config, service, new("uni_eur", 8, 5))
-//    {
-//    }
-//}
-//public class WorkerSand : Worker
-//{
-//    public WorkerSand(IOptions<WorkerConfig> config, BitstampService service, BitstampApiClient api, BitstampRestClient unauthApi)
-//        : base(config, service, new("sand_eur", 8, 5), api, unauthApi)
-//    {
-//    }
-//}
-
 public class SatansWorker : Worker
 {
-    public SatansWorker(IOptions<WorkerConfig> config, BitstampService service, BitstampApiClient api, BitstampRestClient unauthApi)
+    public SatansWorker(IOptions<WorkerConfig> config, BitstampApiClient api, BitstampRestClient unauthApi)
         : base(config, api, unauthApi)
     {
     }
@@ -54,6 +15,8 @@ public class SatansWorker : Worker
 
 public class Worker : BackgroundService
 {
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
     /// <summary>
     /// (Market symbol, decimal precision) pairs
     /// </summary>
@@ -74,9 +37,6 @@ public class Worker : BackgroundService
     //private readonly BitstampService _service;
     //private readonly Coinfig _item;
     private readonly BitstampApiClient _api;
-    private readonly BitstampRestClient _unauthApi;
-    private readonly Random _random;
-    private readonly Stack<string> _activeOrders;
 
     public Worker(IOptions<WorkerConfig> config, BitstampApiClient api, BitstampRestClient unauthApi)
     {
@@ -84,9 +44,6 @@ public class Worker : BackgroundService
         //_service = service;
         //_item = item;
         _api = api;
-        _unauthApi = unauthApi;
-        _random = new Random(this.GetHashCode());
-        _activeOrders = new Stack<string>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -97,13 +54,8 @@ public class Worker : BackgroundService
         {
             try
             {
-                //var r = await _api.GetBalance();
-
-                //var r2 = await _unauthApi.GetOrderBook(_item.Symbol, stoppingToken);
 
                 await DoWork2(stoppingToken);
-
-                //await DoWork(stoppingToken);
             }
             catch (Exception ex)
             {
@@ -178,35 +130,4 @@ public class Worker : BackgroundService
         Logger.Info("Orders canceled.");
 
     }
-
-    // old method that accepts Coinfig
-    //private async Task DoWork(CancellationToken cancellationToken)
-    //{
-    //    var ticker = await _service.GetTicker(_item.Symbol);
-
-    //    var lowerBidPrice = ticker.Bid * _config.BidFactor;
-
-    //    Logger.Info($"({_item.Symbol}) Ticker: {ticker}. We will bid {lowerBidPrice}");
-
-    //    var order = await _service.PlaceBuyLimitOrder(_item, lowerBidPrice, _config.BuyEurAmount);
-
-    //    Logger.Info($"({_item.Symbol}) Placed order {order.OrderId}");
-
-    //    _activeOrders.Push(order.OrderId);
-
-    //    if (!cancellationToken.IsCancellationRequested)
-    //    {
-    //        await Task.Delay(_config.PlaceAndCancelDelay);
-    //    }
-
-    //    while (_activeOrders.Count > 0)
-    //    {
-    //        var orderId = _activeOrders.Peek();
-    //        await _service.CancelOrderAsync(orderId, _item.Symbol);
-
-    //        _activeOrders.Pop();
-
-    //        Logger.Info($"({_item.Symbol}) Order {orderId} canceled.");
-    //    }
-    //}
 }
